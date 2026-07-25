@@ -74,18 +74,173 @@ async def add_request_id_and_log(request: Request, call_next):
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return """
-    <html>
-        <head>
-            <title>Q-Pulse URL-Audit Service</title>
-        </head>
-        <body style="display: flex; flex-direction: column; min-height: 100vh; margin: 0; font-family: sans-serif;">
-            <div style="flex: 1; padding: 20px; display: flex; align-items: center; justify-content: center;">
-                <h1>Q-Pulse URL-Audit Service is Running</h1>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Q-Pulse | URL Audit Service</title>
+        <style>
+            :root {
+                --bg: #0f172a;
+                --surface: #1e293b;
+                --primary: #3b82f6;
+                --primary-hover: #2563eb;
+                --text: #f8fafc;
+                --text-muted: #94a3b8;
+            }
+            body {
+                margin: 0;
+                font-family: 'Inter', -apple-system, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+                align-items: center;
+                justify-content: center;
+                background-image: radial-gradient(circle at 50% -20%, #3b82f640 0%, transparent 50%);
+            }
+            .container {
+                background: rgba(30, 41, 59, 0.7);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 3rem;
+                border-radius: 1rem;
+                text-align: center;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                max-width: 500px;
+                width: 90%;
+                margin-bottom: 2rem;
+                animation: float 6s ease-in-out infinite;
+            }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+                100% { transform: translateY(0px); }
+            }
+            h1 { margin: 0 0 0.5rem 0; font-size: 2.5rem; letter-spacing: -1px; }
+            .subtitle { color: var(--text-muted); margin-bottom: 2rem; }
+            
+            .audit-form { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+            input {
+                flex: 1;
+                padding: 0.75rem 1rem;
+                border-radius: 0.5rem;
+                border: 1px solid rgba(255,255,255,0.2);
+                background: rgba(0,0,0,0.2);
+                color: white;
+                font-size: 1rem;
+                outline: none;
+                transition: border-color 0.2s;
+            }
+            input:focus { border-color: var(--primary); }
+            button {
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 0.75rem 1.5rem;
+                border-radius: 0.5rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s, transform 0.1s;
+            }
+            button:hover { background: var(--primary-hover); }
+            button:active { transform: scale(0.98); }
+
+            #result {
+                display: none;
+                background: rgba(0,0,0,0.3);
+                padding: 1rem;
+                border-radius: 0.5rem;
+                text-align: left;
+                font-size: 0.9rem;
+                border-left: 4px solid var(--primary);
+            }
+            .up { border-left-color: #22c55e !important; }
+            .down { border-left-color: #ef4444 !important; }
+
+            footer {
+                text-align: center;
+                padding: 20px;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+            }
+            footer a { color: var(--primary); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+            footer a:hover { color: #60a5fa; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Q-Pulse</h1>
+            <div class="subtitle">High-Performance URL Audit Service</div>
+            
+            <div class="audit-form">
+                <input type="url" id="urlInput" placeholder="https://example.com" required>
+                <button onclick="runAudit()">Audit</button>
             </div>
-            <footer style="text-align: center; padding: 20px;">
-                <a href="https://digitalheroesco.com">Built for Digital Heroes Training Task</a>
-            </footer>
-        </body>
+            
+            <div id="result"></div>
+        </div>
+
+        <footer>
+            <a href="https://digitalheroesco.com">Built for Digital Heroes Training Task</a>
+        </footer>
+
+        <script>
+            async function runAudit() {
+                const urlInput = document.getElementById('urlInput').value;
+                const resultDiv = document.getElementById('result');
+                const btn = document.querySelector('button');
+                
+                if(!urlInput) return;
+                
+                btn.innerText = 'Auditing...';
+                btn.disabled = true;
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div style="text-align:center; color:#94a3b8;">Running high-speed audit...</div>';
+
+                try {
+                    const response = await fetch('/audit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: urlInput })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if(!response.ok) {
+                        resultDiv.className = 'down';
+                        resultDiv.innerHTML = `<strong>Error:</strong> ${data.error || 'Invalid Request (422)'}`;
+                    } else {
+                        resultDiv.className = data.is_up ? 'up' : 'down';
+                        resultDiv.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong>Status:</strong> 
+                                <span style="color:${data.is_up ? '#22c55e' : '#ef4444'}">${data.is_up ? 'ONLINE' : 'OFFLINE'}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong>Response Time:</strong> <span>${data.response_time_ms.toFixed(2)} ms</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong>Status Code:</strong> <span>${data.status_code || 'Timeout'}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <strong>Cached Result:</strong> 
+                                <span style="color:${data.cached ? '#a855f7' : '#94a3b8'}">${data.cached ? 'Yes' : 'No'}</span>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    resultDiv.className = 'down';
+                    resultDiv.innerHTML = `<strong>Error:</strong> Network issue connecting to API`;
+                }
+                
+                btn.innerText = 'Audit';
+                btn.disabled = false;
+            }
+        </script>
+    </body>
     </html>
     """
 
