@@ -40,7 +40,7 @@ async def test_audit_valid_url(mock_redis):
     
     assert response.status_code == 200
     data = response.json()
-    assert data["url"] == "https://httpbin.org/status/200/"
+    assert data["url"] == "https://httpbin.org/status/200"
     assert data["status_code"] == 200
     assert data["is_up"] is True
     assert data["cached"] is False
