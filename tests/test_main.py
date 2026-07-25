@@ -1,7 +1,8 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient, ASGITransport, Response
 from main import app
 import redis.asyncio as redis
+from unittest.mock import patch
 
 # Mock Redis for testing without an active instance
 class MockRedis:
@@ -33,8 +34,11 @@ async def test_audit_invalid_url():
     assert response.status_code == 422 # Unprocessable Entity (Input Validation)
 
 @pytest.mark.asyncio
-async def test_audit_valid_url(mock_redis):
-    # Ensure it's a URL that exists, using httpbin for reliable responses
+@patch("main.httpx.AsyncClient.get")
+async def test_audit_valid_url(mock_get, mock_redis):
+    # Mock the external HTTP call to avoid timeouts and rate-limiting during CI
+    mock_get.return_value = Response(200, request=None)
+    
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/audit", json={"url": "https://httpbin.org/status/200"})
     
